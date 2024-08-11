@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="top.hellodays.blog_demo1.mapper.BlogMapper">
+
+    <insert id="addBlog" parameterType="Blog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO b_blog (user_id, title, description, content, created, status) VALUES ( #{user_id}, #{title}, #{description}, #{content}, NOW(), #{status} )
+    </insert>
+
+    <delete id="deleteBlog" parameterType="int">
+        DELETE FROM b_blog WHERE id = #{id}
+    </delete>
+
+    <update id="updateBlog" parameterType="Blog">
+        UPDATE b_blog SET user_id = #{user_id}, title = #{title}, description = #{description}, content = #{content}, created = #{created}, status = #{status}
+    </update>
+
+    <select id="findBlogById" parameterType="int" resultType="Blog">
+        SELECT * FROM b_blog WHERE id = #{id}
+    </select>
+
+    <select id="findBlogByName" parameterType="java.lang.String" resultType="Blog">
+        SELECT * FROM b_blog WHERE title LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+    <select id="findAllBlog" resultType="Blog">
+        SELECT * FROM b_blog
+    </select>
+
+</mapper>
