@@ -31,7 +31,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!--热部署, 别遗漏-->
+        <!--Springboot的热部署-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -39,10 +39,31 @@
             <optional>true</optional>
         </dependency>
 
+        <!--Springboot的单元测试-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--Springboot的Aop功能-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!--连接MySQL-->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!--连接Redis-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>3.3.2</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.mybatis/mybatis -->
@@ -53,111 +74,125 @@
                 </dependency>-->
 
         <!--这里有个大坑, 由于一开始我使用了上方Mybatis依赖导致接口永远无法被正常调用, 直到我换成下面这个才解决问题-->
-
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>3.0.3</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.freemarker</groupId>
-            <artifactId>freemarker</artifactId>
-            <version>2.3.31</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid</artifactId>
-            <version>1.2.23</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/com.alibaba/druid-spring-boot-starter -->
+        <!--数据库连接池, 用于减轻数据库负担?-->
+        <!--参考: https://blog.csdn.net/doubiy/article/details/131578389-->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
             <version>1.2.23</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.11.0</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.14.0</version>
-        </dependency>
-
+        <!--精简实体代码工具类-->
+        <!--减少GetSet代码提升美观-->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
+        <!--实体Json转换工具类-->
+        <!--主要用途为序列化Java 对象为JSON 字符串，或反序列化JSON 字符串成Java 对象-->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
         </dependency>
 
-        <!--挂载springboot的aop功能-->
+        <!--字符串工具类-->
+        <!--提供一堆字符串操作相关的静态方法有用的工具, 详情自寻-->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.14.0</version>
         </dependency>
 
-        <!--挂载Token(JWT)-->
+        <!--JWT工具类-->
+        <!--顾名思义. 操作JWT的主要手段-->
         <dependency>
             <groupId>com.auth0</groupId>
             <artifactId>java-jwt</artifactId>
-            <version>4.3.0</version>
+            <version>4.4.0</version>
         </dependency>
 
-        <!-- Pagehelper分页插件-->
-        <!-- https://mvnrepository.com/artifact/com.github.pagehelper/pagehelper-spring-boot-starter -->
+        <!--分页工具类-->
+        <!--用来统一返回从数据库中分页查询到的信息并以特定格式返回前端-->
         <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper-spring-boot-starter</artifactId>
             <version>2.1.0</version>
         </dependency>
 
-        <!--shiro安全框架, 但是整合了Redis, 为什么要整合Redis, 按照参考项目愿意: -->
-        <!--考虑到后面可能需要做集群、负载均衡等，所以就需要会话共享，而shiro的缓存和会话信息，我们一般考虑使用redis来存储这些数据，所以，我们不仅仅需要整合shiro，同时也需要整合redis-->
+        <!--实体校验工具类-->
+        <!--通过注解的方式来检查或要求实体字段不为空的手段-->
         <dependency>
-            <groupId>org.crazycake</groupId>
-            <artifactId>shiro-redis-spring-boot-starter</artifactId>
-            <version>3.3.1</version>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
-        <!-- hutool工具类-->
-        <!-- 这玩意很强大, 一键偷懒, 跟Lombok一个德行-->
-        <!-- 这篇博客讲得很清楚 https://blog.csdn.net/a1120467800/article/details/114997491 -->
+        <!-- Hutool工具类-->
+        <!-- 好东西, 参考: https://blog.csdn.net/a1120467800/article/details/114997491 -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>5.8.25</version>
         </dependency>
 
-        <!--用于解决继承shiro的AuthenticatingFilter过滤器参数中servlet缺失的依赖-->
+        <!--重点-->
+        <!--shiro安全框架, Redis, 为什么要整合Redis, 按照参考项目愿意: -->
+        <!--考虑到后面可能需要做集群、负载均衡等，所以就需要会话共享，而shiro的缓存和会话信息，我们一般考虑使用redis来存储这些数据，所以，我们不仅仅需要整合shiro，同时也需要整合redis-->
+        <!--关于该框架我使用了数个版本, 有整合Redis以及单独的Starter, 但最终都死在获取请求参数这一步(4 days), 最终排查是Springboot更新及Shiro依赖版本的共同问题-->
+        <!--最终解决方案参考: https://blog.csdn.net/qq_45145629/article/details/135478467-->
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>4.0.1</version>
-            <scope>provided</scope>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-spring</artifactId>
+            <classifier>jakarta</classifier>
+            <version>1.13.0</version>
+            <!-- 排除仍使用了javax.servlet的依赖 -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.shiro</groupId>
+                    <artifactId>shiro-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.shiro</groupId>
+                    <artifactId>shiro-web</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- 引入适配jakarta的依赖包 -->
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-core</artifactId>
+            <classifier>jakarta</classifier>
+            <version>1.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-web</artifactId>
+            <classifier>jakarta</classifier>
+            <version>1.13.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.shiro</groupId>
+                    <artifactId>shiro-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-        <!--实体校验, 后端来检查实体字段格式或者是否非空的一个手段-->
-        <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-        </dependency>
+        <!--用于解决继承shiro的AuthenticatingFilter过滤器参数中servlet缺失的依赖-->
+        <!--不要再使用javax.servlet了, 导致很多问题, 坑惨了自己, 原因: https://blog.csdn.net/trayvontang/article/details/135293855-->
+        <!--        <dependency>-->
+        <!--            <groupId>javax.servlet</groupId>-->
+        <!--            <artifactId>javax.servlet-api</artifactId>-->
+        <!--            <version>4.0.1</version>-->
+        <!--            <scope>provided</scope>-->
+        <!--        </dependency>-->
 
     </dependencies>
 

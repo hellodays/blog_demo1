@@ -1,137 +1,133 @@
 package top.hellodays.blog_demo1.config;
 
-
+import jakarta.servlet.Filter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.mgt.DefaultSessionStorageEvaluator;
 import org.apache.shiro.mgt.DefaultSubjectDAO;
 import org.apache.shiro.mgt.SecurityManager;
-import org.apache.shiro.session.mgt.SessionManager;
+import org.apache.shiro.spring.LifecycleBeanPostProcessor;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
-import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
-import org.apache.shiro.spring.web.config.ShiroFilterChainDefinition;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
-import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
-import org.crazycake.shiro.RedisCacheManager;
-import org.crazycake.shiro.RedisManager;
-import org.crazycake.shiro.RedisSessionDAO;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.hellodays.blog_demo1.shiro.AccountRealm;
-import top.hellodays.blog_demo1.shiro.JwtFilter;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.data.redis.core.RedisTemplate;
+import top.hellodays.blog_demo1.shiro.CustomCacheManager;
+import top.hellodays.blog_demo1.shiro.CustomJwtFilter;
+import top.hellodays.blog_demo1.shiro.CustomJwtRealm;
 
-import javax.servlet.Filter;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Shiro的配置类
- * 算是整合Shiro框架过程种最为繁琐的一步, 为了理解, 理清Shiro逻辑更为紧要
- * 快速参考: https://leay.net/2019/11/09/shiro+jwt/
+ * Shiro配置类
  */
+@Slf4j
 @Configuration
 public class ShiroConfig {
 
-    @Autowired
-    JwtFilter jwtFilter;
 
-
-    @Bean
-    public SessionManager sessionManager(RedisSessionDAO redisSessionDAO) {
-        DefaultWebSessionManager sessionManager = new DefaultWebSessionManager();
-        sessionManager.setSessionDAO(redisSessionDAO);
-        return sessionManager;
-    }
-
-    @Bean
-    public DefaultWebSecurityManager securityManager(AccountRealm accountRealm,
-                                                     SessionManager sessionManager,
-                                                     RedisCacheManager redisCacheManager) {
-        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager(accountRealm);
-        securityManager.setSessionManager(sessionManager);
-        securityManager.setCacheManager(redisCacheManager);
-        /*
-         * 关闭shiro自带的session，详情见文档
-         */
-        DefaultSubjectDAO subjectDAO = new DefaultSubjectDAO();
+    /**
+     * 配置使用自定义Realm
+     */
+    @Bean("securityManager")
+    public DefaultWebSecurityManager securityManager(CustomJwtRealm customJwtRealm, RedisTemplate<String, Object> template) {
+        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+        // 使用自定义Realm
+        securityManager.setRealm(customJwtRealm);
+        // 关闭Shiro自带的session（因为我们采用的是Jwt token的机制）
+        DefaultSubjectDAO defaultSubjectDAO = new DefaultSubjectDAO();
         DefaultSessionStorageEvaluator defaultSessionStorageEvaluator = new DefaultSessionStorageEvaluator();
         defaultSessionStorageEvaluator.setSessionStorageEnabled(false);
-        subjectDAO.setSessionStorageEvaluator(defaultSessionStorageEvaluator);
-        securityManager.setSubjectDAO(subjectDAO);
+        defaultSubjectDAO.setSessionStorageEvaluator(defaultSessionStorageEvaluator);
+        securityManager.setSubjectDAO(defaultSubjectDAO);
+        // 设置自定义Cache缓存
+        securityManager.setCacheManager(new CustomCacheManager(template));
+
+        //解决无法获取securityManager对象问题, 网上基本不是这么解决的的, 个人尝试结果(替代getSecurityManager方法)
+        //SecurityUtils.setSecurityManager(securityManager);
+
         return securityManager;
     }
 
+    /**
+     * by _days
+     * 不知道有什么屌用, 但是解决了securityManager对象丢失的问题
+     */
     @Bean
-    public ShiroFilterChainDefinition shiroFilterChainDefinition() {
-        DefaultShiroFilterChainDefinition chainDefinition = new DefaultShiroFilterChainDefinition();
-        Map<String, String> filterMap = new LinkedHashMap<>();
-        filterMap.put("/**", "jwt"); // 主要通过注解方式校验权限
-        chainDefinition.addPathDefinitions(filterMap);
-        return chainDefinition;
+    public SecurityManager getSecurityManager() {
+        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+        SecurityUtils.setSecurityManager(securityManager);
+        return securityManager;
     }
 
-    @Bean("shiroFilterFactoryBean")
-    public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager,
-                                                         ShiroFilterChainDefinition shiroFilterChainDefinition) {
-        ShiroFilterFactoryBean shiroFilter = new ShiroFilterFactoryBean();
-        shiroFilter.setSecurityManager(securityManager);
-        Map<String, Filter> filters = new HashMap<>();
-        filters.put("jwt", jwtFilter);
-        shiroFilter.setFilters(filters);
-        Map<String, String> filterMap = shiroFilterChainDefinition.getFilterChainMap();
-        shiroFilter.setFilterChainDefinitionMap(filterMap);
-        return shiroFilter;
+    /**
+     * 配置自定义过滤器
+     */
+    @Bean("shiroFilter")
+    public ShiroFilterFactoryBean shiroFilter(DefaultWebSecurityManager defaultWebSecurityManager) {
+        ShiroFilterFactoryBean factoryBean = new ShiroFilterFactoryBean();
+        // 添加自己的过滤器名为jwtFilter
+        Map<String, Filter> filterMap = new HashMap<>(16);
+        filterMap.put("jwtFilter", jwtFilterBean());
+        factoryBean.setFilters(filterMap);
+        factoryBean.setSecurityManager(defaultWebSecurityManager);
+        // 设置无权限时跳转的 url;
+        //factoryBean.setUnauthorizedUrl("/unauthorized/无权限");
+        // 自定义url规则
+        HashMap<String, String> filterRuleMap = new HashMap<>(16);
+        // 所有请求通过我们自己的JwtFilter
+        filterRuleMap.put("/**", "jwtFilter");
+        factoryBean.setFilterChainDefinitionMap(filterRuleMap);
+        return factoryBean;
     }
 
-    // 开启注解代理（默认好像已经开启，可以不要）
-    @Bean
-    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(SecurityManager securityManager) {
-        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
-        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager);
-        return authorizationAttributeSourceAdvisor;
+    /**
+     * <pre>
+     * 注入bean，此处应注意：
+     *
+     * (1)代码顺序，应放置于shiroFilter后面，否则报错：
+     *
+     * (2)如不在此注册，在filter中将无法正常注入bean
+     * </pre>
+     */
+    @Bean("jwtFilter")
+    public CustomJwtFilter jwtFilterBean() {
+        return new CustomJwtFilter();
     }
 
+    /**
+     * 添加注解支持
+     */
     @Bean
-    public static DefaultAdvisorAutoProxyCreator getDefaultAdvisorAutoProxyCreator(){
-        DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator=new DefaultAdvisorAutoProxyCreator();
-        /**
-         * setUsePrefix(false)用于解决一个奇怪的bug。在引入spring aop的情况下。
-         * 在@Controller注解的类的方法中加入@RequiresRole等shiro注解，会导致该方法无法映射请求，导致返回404。
-         * 加入这项配置能解决这个bug
-         */
-        defaultAdvisorAutoProxyCreator.setUsePrefix(true);
+    @DependsOn("lifecycleBeanPostProcessor")
+    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator() {
+        DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator = new DefaultAdvisorAutoProxyCreator();
+        // 强制使用cglib，防止重复代理和可能引起代理出错的问题，https://zhuanlan.zhihu.com/p/29161098
+        defaultAdvisorAutoProxyCreator.setProxyTargetClass(true);
         return defaultAdvisorAutoProxyCreator;
     }
 
-    @Bean(name = "redisManager")
-    public RedisManager redisManager() {
-        RedisManager redisManager = new RedisManager();
-        return redisManager;
+    @Bean
+    public LifecycleBeanPostProcessor lifecycleBeanPostProcessor() {
+        return new LifecycleBeanPostProcessor();
     }
 
     /**
-     * cacheManager 缓存 redis实现
-     * 使用的是shiro-redis开源插件
+     * ||启动shiro的aop||
+     * 使得我们后面加在方法上面的权限控制注解可以生效。
+     * 例如：@RequiresPermissions("/sys/bank/delete"), @RequiresRoles("admin")
      */
     @Bean
-    public RedisCacheManager redisCacheManager() {
-        RedisCacheManager redisCacheManager = new RedisCacheManager();
-        redisCacheManager.setRedisManager(redisManager());
-        return redisCacheManager;
+    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(
+            DefaultWebSecurityManager defaultWebSecurityManager
+    ) {
+        AuthorizationAttributeSourceAdvisor advisor = new AuthorizationAttributeSourceAdvisor();
+        advisor.setSecurityManager(defaultWebSecurityManager);
+        return advisor;
     }
-
-    /**
-     * RedisSessionDAO shiro sessionDao层的实现 通过redis
-     * 使用的是shiro-redis开源插件
-     */
-    @Bean
-    public RedisSessionDAO redisSessionDAO() {
-        RedisSessionDAO redisSessionDAO = new RedisSessionDAO();
-        redisSessionDAO.setRedisManager(redisManager());
-        return redisSessionDAO;
-    }
-
 
 }

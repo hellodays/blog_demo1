@@ -1,55 +1,109 @@
 package top.hellodays.blog_demo1.controller;
 
 
-import cn.hutool.core.lang.Assert;
 import cn.hutool.crypto.SecureUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authc.AccountException;
+import org.apache.shiro.authc.IncorrectCredentialsException;
+import org.apache.shiro.authc.UnknownAccountException;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import top.hellodays.blog_demo1.entity.User;
-import top.hellodays.blog_demo1.enums.ResponseCode;
+import top.hellodays.blog_demo1.utils.UserConverterUtil;
 import top.hellodays.blog_demo1.model.dto.UserLoginDTO;
-import top.hellodays.blog_demo1.model.vo.Response;
-import top.hellodays.blog_demo1.model.vo.UserInfoResp;
+import top.hellodays.blog_demo1.model.vo.ResultVO;
 import top.hellodays.blog_demo1.service.UserService;
-import top.hellodays.blog_demo1.utils.JWTUtil;
-import top.hellodays.blog_demo1.utils.UserConverter;
+import top.hellodays.blog_demo1.utils.JwtUtil;
+import top.hellodays.blog_demo1.constant.ShiroConstant;
+import top.hellodays.blog_demo1.utils.RedisUtil;
 
 
 /**
  * 登录控制器
  * 术业有专攻, 对每个请求进行细分, 不再写入UserController内造成数据冗余
  */
+@Slf4j
 @RestController
 public class LoginController {
 
+
+    @Value("${config.refreshToken-expireTime}")
+    private String refreshTokenExpireTime;
+
     @Autowired
-    UserService userService;
+    private RedisUtil redis;
+
+    @Autowired
+    private HttpServletRequest request;
+
+    @Autowired
+    private UserService userService;
 
 
-    //用户登录接口
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public Response<UserInfoResp> login(@Validated UserLoginDTO userLoginDTO, HttpServletResponse httpServletResponse) { //@Validated注解用来配合实体参数完整性的校验
+    public ResultVO<?> login(@Validated UserLoginDTO userLoginDTO, HttpServletResponse response) throws Exception {
 
-        //判断是否存在
-        User userdb = userService.getUserByUserName(userLoginDTO.getUsername());
-        Assert.notNull(userdb); //断言重现！但是Java, 很明显抛出错误(异常)之后应该进行捕获处理, 这里交给了全局异常捕获, 详见exception包
-        //判断密码正确
-        //存进数据库的密码理应使用md5工具进行加密, 因而拿出来的数据也是md5, 所以需要使用Hutu工具包来对传进来的密码再次加密后进行对比(md5加密同字符串好像结果一样)
-        if (!(userdb.getPassword().equals(SecureUtil.md5(userLoginDTO.getPassword())))) {
-            return Response.failure(ResponseCode.UNAUTHORIZED, "密码错误");
-        } else {
-            //一旦登陆成功就应该将Token颁布给用户(该项目核心)
-            String token = JWTUtil.createToken(userdb);
-            //最后一步将所需的核心数据返回前端(这一步用到了Servlet的内容, 记得及时回顾)
-            httpServletResponse.setHeader("Authorization", token); //这里是把token放进了Authorization头中
-            httpServletResponse.setHeader("Access-Control-Expose-Headers", "Authorization");
-
-            return Response.success(UserConverter.convertUser(userdb));
+        log.info("登录Controller层开始认证...");
+        String username = userLoginDTO.getUsername();
+        String password = SecureUtil.md5(userLoginDTO.getPassword());
+        String realPassword = userService.getUserByUserName(username).getPassword();
+        Integer userstatus = userService.getUserByUserName(username).getStatus(); //账户锁定判断?
+        if (realPassword == null) {
+            throw new UnknownAccountException();
+        } else if (!realPassword.equals(password)) {
+            throw new IncorrectCredentialsException();
+        } else if (userstatus == 1) {
+            throw new AccountException("用户被锁定，无法登录");
         }
+        log.info("结束认证...");
+
+        log.info("数据库对象认证通过, 接下来进行Redis缓存及信息返回...");
+
+        // 清除可能存在的shiro权限信息缓存
+        if (redis.hasKey(ShiroConstant.PREFIX_SHIRO_CACHE + username)) {
+            redis.del(ShiroConstant.PREFIX_SHIRO_CACHE + username);
+        }
+        // 设置RefreshToken，时间戳为当前时间戳，直接设置即可(不用先删后设，会覆盖已有的RefreshToken)
+        String currentTimeMillis = String.valueOf(System.currentTimeMillis());
+        redis.set(ShiroConstant.REFRESH_TOKEN + username, currentTimeMillis,
+                Integer.parseInt(refreshTokenExpireTime));
+        // 从Header中Authorization返回AccessToken，时间戳为当前时间戳
+        String token = JwtUtil.generateJwt(username, currentTimeMillis);
+        response.setHeader(ShiroConstant.REQUEST_AUTH_HEADER, token);
+        response.setHeader("Access-Control-Expose-Headers", ShiroConstant.REQUEST_AUTH_HEADER);
+
+        log.info("当前登录时间戳为: " + currentTimeMillis);
+        log.info("登录生成的Token为: " + token);
+
+        //获取当前的用户
+//        Subject subject = SecurityUtils.getSubject();
+//        if (!subject.isAuthenticated()){
+//            CustomJwtToken jwtToken = new CustomJwtToken(token);
+//            // 执行登陆方法
+//            subject.login(jwtToken);
+//        }
+
+        return ResultVO.success(UserConverterUtil.convertUser(userService.getUserByUserName(userLoginDTO.getUsername())));
+
+    }
+
+    @RequiresAuthentication
+    @RequestMapping(value = "/logout", method = RequestMethod.GET)
+    public ResultVO<?> logout(HttpServletRequest request) {
+
+
+//        String token = request.getHeader(ShiroConstant.REQUEST_AUTH_HEADER);
+//        CustomJwtToken jwtToken = new CustomJwtToken(token);
+//        Subject current = SecurityUtils.getSubject();
+//        current.login(jwtToken);
+//        current.logout();
+        return ResultVO.success();
     }
 
 }

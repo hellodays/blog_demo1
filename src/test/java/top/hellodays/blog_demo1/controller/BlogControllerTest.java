@@ -4,11 +4,8 @@ import com.github.pagehelper.PageInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import top.hellodays.blog_demo1.entity.Blog;
-import top.hellodays.blog_demo1.model.vo.Response;
 import top.hellodays.blog_demo1.service.BlogService;
-
-import static org.junit.jupiter.api.Assertions.*;
+import top.hellodays.blog_demo1.entity.Blog;
 
 @SpringBootTest
 class BlogControllerTest {

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Data
 public class User {
 
-    private Integer id;
+    private Long id;
     @NotBlank(message = "昵称不能为空")
     private String username;
     @NotBlank(message = "密码不能为空")

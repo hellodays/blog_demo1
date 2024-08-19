@@ -4,9 +4,9 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.hellodays.blog_demo1.entity.Blog;
 import top.hellodays.blog_demo1.mapper.BlogMapper;
 import top.hellodays.blog_demo1.service.BlogService;
+import top.hellodays.blog_demo1.entity.Blog;
 
 import java.util.List;
 
@@ -25,12 +25,19 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public Blog getBlogById(Integer id) {
+    public Blog getBlogById(Long id) {
         Blog blogdb = blogMapper.findBlogById(id);
         if (blogdb != null) {
             return blogdb;
         } else {
             return null;
+        }
+    }
+
+    @Override
+    public void addBlog(Blog blog) {
+        if (blog != null) {
+            blogMapper.addBlog(blog);
         }
     }
 
@@ -43,7 +50,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public int deleteBlog(Integer id) {
-           return blogMapper.deleteBlog(id);
+        return blogMapper.deleteBlog(id);
     }
 
 }

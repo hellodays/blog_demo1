@@ -14,7 +14,7 @@ public interface BlogMapper {
 
     int updateBlog(Blog blog);
 
-    Blog findBlogById(Integer id);
+    Blog findBlogById(Long id);
 
     Blog findBlogByName(String keyword);
 

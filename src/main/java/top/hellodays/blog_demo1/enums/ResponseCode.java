@@ -1,6 +1,9 @@
 package top.hellodays.blog_demo1.enums;
 
 
+/**
+ * HTTP状态码枚举类, 建议持续完善(细化)
+ */
 public enum ResponseCode {
 
     //定义常量, 常量内设置是参数对应枚举类的两个属性

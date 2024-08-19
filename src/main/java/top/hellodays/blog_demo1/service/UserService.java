@@ -1,9 +1,8 @@
 package top.hellodays.blog_demo1.service;
 
-import org.springframework.stereotype.Service;
 import top.hellodays.blog_demo1.entity.User;
 
-@Service
+
 public interface UserService {
 
     //注册部分

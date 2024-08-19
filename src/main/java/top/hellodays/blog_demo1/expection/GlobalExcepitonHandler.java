@@ -9,8 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import top.hellodays.blog_demo1.model.vo.Response;
 import top.hellodays.blog_demo1.enums.ResponseCode;
+import top.hellodays.blog_demo1.model.vo.ResultVO;
 
 import java.io.IOException;
 
@@ -24,7 +24,7 @@ import java.io.IOException;
  *
  * @Slf4j注解可以简单理解而成日志记录, 但是一键偷懒
  * 参考: https://www.cnblogs.com/xrq730/p/8619156.html
- *
+ * <p>
  * 最后, 全局异常是前端友好的, 你看返回值就知道是发给前端看的了, 同时也是后端友好的, 这样能根据日志快速定位问题
  */
 
@@ -35,18 +35,19 @@ public class GlobalExcepitonHandler {
     // 捕捉shiro的异常
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ExceptionHandler(ShiroException.class)
-    public Response handle401(ShiroException e) {
-        return Response.failure(ResponseCode.UNAUTHORIZED, e.getMessage());
+    public ResultVO handle401(ShiroException e) {
+        return ResultVO.failure(ResponseCode.UNAUTHORIZED, e.getMessage());
     }
+
 
     /**
      * 处理Assert的异常
      */
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = IllegalArgumentException.class)
-    public Response handler(IllegalArgumentException e) throws IOException {
+    public ResultVO handler(IllegalArgumentException e) throws IOException {
         log.error("Assert异常:-------------->{}", e.getMessage());
-        return Response.failure(ResponseCode.UNAUTHORIZED, e.getMessage());
+        return ResultVO.failure(ResponseCode.UNAUTHORIZED, e.getMessage());
     }
 
     /**
@@ -54,18 +55,18 @@ public class GlobalExcepitonHandler {
      */
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    public Response handler(MethodArgumentNotValidException e) throws IOException {
+    public ResultVO handler(MethodArgumentNotValidException e) throws IOException {
         log.error("运行时异常:-------------->", e);
         BindingResult bindingResult = e.getBindingResult();
         ObjectError objectError = bindingResult.getAllErrors().stream().findFirst().get();
-        return Response.failure(ResponseCode.FAIL, objectError.getDefaultMessage());
+        return ResultVO.failure(ResponseCode.FAIL, objectError.getDefaultMessage());
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = RuntimeException.class)
-    public Response handler(RuntimeException e) throws IOException {
+    public ResultVO handler(RuntimeException e) throws IOException {
         log.error("运行时异常:-------------->", e);
-        return Response.failure(ResponseCode.FAIL, e.getMessage());
+        return ResultVO.failure(ResponseCode.FAIL, e.getMessage());
     }
 
 }

@@ -4,27 +4,43 @@
 <mapper namespace="top.hellodays.blog_demo1.mapper.UserMapper">
 
     <insert id="addUser" parameterType="User" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO b_user (username, password, email, avatar, status, created, last_login) VALUES ( #{username}, #{password}, #{email}, #{avatar}, #{status}, NOW(), #{last_login} )
+        INSERT INTO b_user (username, password, email, avatar, status, created, last_login)
+        VALUES (#{username}, #{password}, #{email}, #{avatar}, #{status}, NOW(), #{last_login})
     </insert>
 
     <delete id="deleteUser" parameterType="int">
-        DELETE FROM b_user WHERE id = #{id}
+        DELETE
+        FROM b_user
+        WHERE id = #{id}
     </delete>
 
     <update id="updateUser" parameterType="User">
-        UPDATE b_user SET username = #{username}, password = #{password}, email = #{email}, avatar = #{avatar}, status = #{status}, last_login = #{last_login}
+        UPDATE b_user
+        SET username   = #{username},
+            password   = #{password},
+            email      = #{email},
+            avatar     = #{avatar},
+            status     = #{status},
+            last_login = #{last_login}
     </update>
 
     <select id="findUserById" parameterType="int" resultType="User">
-        SELECT * FROM b_user WHERE id = #{id}
+        SELECT *
+        FROM b_user
+        WHERE id = #{id}
     </select>
 
     <select id="findUserByName" parameterType="java.lang.String" resultType="User">
-        SELECT * FROM b_user WHERE username = #{keyword}
+        SELECT *
+        FROM b_user
+        WHERE username = #{keyword}
     </select>
 
     <select id="login" parameterType="java.lang.String" resultType="User">
-        SELECT * FROM b_user WHERE username = #{un} AND password = #{pw}
+        SELECT *
+        FROM b_user
+        WHERE username = #{un}
+          AND password = #{pw}
     </select>
 
 </mapper>
