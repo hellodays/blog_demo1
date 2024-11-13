@@ -16,12 +16,14 @@
 
     <update id="updateBlog" parameterType="Blog">
         UPDATE b_blog
-        SET user_id     = #{user_id},
+        SET id          = #{id},
+            user_id     = #{user_id},
             title       = #{title},
             description = #{description},
             content     = #{content},
             created     = #{created},
             status      = #{status}
+        WHERE id = #{id}
     </update>
 
     <select id="findBlogById" parameterType="int" resultType="Blog">

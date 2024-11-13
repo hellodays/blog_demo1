@@ -16,12 +16,14 @@
 
     <update id="updateUser" parameterType="User">
         UPDATE b_user
-        SET username   = #{username},
+        SET id         = #{id},
+            username   = #{username},
             password   = #{password},
             email      = #{email},
             avatar     = #{avatar},
             status     = #{status},
             last_login = #{last_login}
+        WHERE id = #{id}
     </update>
 
     <select id="findUserById" parameterType="int" resultType="User">
